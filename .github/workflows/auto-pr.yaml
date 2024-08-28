@@ -1,0 +1,57 @@
+name: Auto PR for update branches
+
+on:
+  push:
+    branches:
+      - 'workflow**'
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "github-actions@github.com"
+
+      - name: Commit changes
+        run: |
+          touch hello2.txt
+          git add hello2.txt
+          git commit -m "add hello2"
+          touch byee2.txt
+          git add byee2.txt
+          git commit -m "add byee2"
+          touch bless.txt
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: add bless
+          title: 'test as in week'
+          branch: 'helm-chart-update-${{ github.run_id }}'
+          base: 'main'  # or your default branch name
+          body: |
+            Testing testing mic testing
+          draft: false
+
+      - name: Check outputs
+        if: ${{ steps.cpr.outputs.pull-request-number }}
+        run: |
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
+
+      - name: Auto-merge if checks pass
+        uses: pascalgn/automerge-action@v0.14.0
+        # permissions:
+        #   contents: write
+        env:  
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          PULL_REQUEST: "${{ steps.cpr.outputs.pull-request-number }}"
